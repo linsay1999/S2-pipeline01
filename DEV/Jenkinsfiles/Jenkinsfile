@@ -2,20 +2,14 @@ pipeline {
     agent { 
         label 'node1 || node2 || node3 || node4 || node5'
          }
-   
-  
-    options { buildDiscarder(logRotator(artifactDaysToKeepStr: '',
+        options { buildDiscarder(logRotator(artifactDaysToKeepStr: '',
      artifactNumToKeepStr: '', daysToKeepStr: '3', numToKeepStr: '5'))
       disableConcurrentBuilds() }
       
     environment {
 		DOCKERHUB_CREDENTIALS=credentials('dockerhub')
 	}
-
-
     stages {
-
-
            stage('Setup parameters') {
             steps {
                 script { 
@@ -24,9 +18,7 @@ pipeline {
                             string(name: 'WARNTIME',
                              defaultValue: '0',
                             description: '''Warning time (in minutes) before starting upgrade'''),
-
-                             
-                         
+                                           
                           string(
                                 defaultValue: 'develop',
                                 name: 'Please_leave_this_section_as_it_is',
@@ -38,7 +30,6 @@ pipeline {
             }
         }
 
-
         //////////////////////////////////
        stage('warning') {
       steps {
@@ -48,12 +39,9 @@ pipeline {
         }
       }
     }
-
-
        stage('SonarQube analysis') {
             agent {
                 docker {
-
                   image 'sonarsource/sonar-scanner-cli:4.7.0'
                 }
                }
@@ -67,8 +55,6 @@ pipeline {
                 }
             }
         }
-
-
           stage("Quality Gate") {
             steps {
               timeout(time: 3, unit: 'MINUTES') {
@@ -76,9 +62,7 @@ pipeline {
               }
             }
           }
-     
-
-stage('build ') {
+ stage('build ') {
          agent {
   label "jenkins-node"
     }
@@ -86,11 +70,10 @@ stage('build ') {
                sh '''
                COMMIT=$(git rev-parse --short=5 HEAD)
                cd $WORKSPACE/DEV
-           docker build -t devopseasylearning2021/canary-dev:$COMMIT .
+           docker build -t devopseasylearning2021/alfred:canary-dev_$COMMIT .
                '''
             }
         }
-       
 
       stage('Docker Login') {
                agent {
@@ -101,23 +84,17 @@ stage('build ') {
 			}
 		}
 
-           
-            
-
-     stage('Docker push ') {
+      stage('Docker push ') {
                 agent {
   label "jenkins-node"
     }
             steps {
                sh '''
                COMMIT=`git rev-parse --short=5 HEAD`
-             docker push  devopseasylearning2021/canary-dev:$COMMIT 
+             docker push  devopseasylearning2021/alfred:canary-dev_$COMMIT
                 '''
             }
         }
-
-
-
 
          stage('update charts ') {
                 agent {
@@ -145,38 +122,34 @@ stage('build ') {
   }
 }   
 
-
-
-
-
 def notifyUpgrade(String buildResult, String whereAt) {
   if (Please_leave_this_section_as_it_is == 'origin/develop') {
-    channel = 'development-alerts'
+    channel = 'aldevops'
   } else {
-    channel = 'development-alerts'
+    channel = 'aldevops'
   }
   if (buildResult == "SUCCESS") {
     switch(whereAt) {
       case 'WARNING':
         slackSend(channel: channel,
                 color: "#439FE0",
-                message: "DEVELOPMENT-Canary: Upgrade starting in ${env.WARNTIME} minutes @ ${env.BUILD_URL}")
+                message: "Alf-DEVELOPMENT-Canary: Upgrade starting in ${env.WARNTIME} minutes @ ${env.BUILD_URL}")
         break
     case 'STARTING':
       slackSend(channel: channel,
                 color: "good",
-                message: "DEVELOPMENT-Canary: Starting upgrade @ ${env.BUILD_URL}")
+                message: "Alf-DEVELOPMENT-Canary: Starting upgrade @ ${env.BUILD_URL}")
       break
     default:
         slackSend(channel: channel,
                 color: "good",
-                message: "DEVELOPMENT-Canary: Upgrade completed successfully @ ${env.BUILD_URL}")
+                message: "Alf-DEVELOPMENT-Canary: Upgrade completed successfully @ ${env.BUILD_URL}")
         break
     }
   } else {
     slackSend(channel: channel,
               color: "danger",
-              message: "DEVELOPMENT-Canary: Upgrade was not successful. Please investigate it immediately.  @ ${env.BUILD_URL}")
+              message: "Alf-DEVELOPMENT-Canary: Upgrade was not successful. Please investigate it immediately.  @ ${env.BUILD_URL}")
     }
 }
 
